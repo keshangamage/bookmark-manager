@@ -1,32 +1,50 @@
 'use client';
 
+import {PlusIcon} from 'lucide-react';
 import {useActionState} from 'react';
+import {Button} from '@/components/ui/button';
+import {Field, FieldError, FieldGroup, FieldLabel} from '@/components/ui/field';
+import {Input} from '@/components/ui/input';
 import {addBookmark} from '@/lib/bookmarks';
-
-const input =
-  'w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950';
 
 export default function AddBookmarkForm() {
   const [state, formAction, pending] = useActionState(
     async (_prev: {error?: string}, formData: FormData) => addBookmark(formData),
     {},
   );
+  const invalid = Boolean(state?.error);
 
   return (
-    <form action={formAction} className="grid gap-3 sm:grid-cols-[2fr_1.5fr_1fr_auto]">
-      <input className={input} name="url" placeholder="https://example.com" required />
-      <input className={input} name="title" placeholder="Title (optional)" />
-      <input className={input} name="tag" placeholder="Tag (optional)" />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-      >
-        {pending ? 'Adding…' : 'Add'}
-      </button>
-      {state?.error ? (
-        <p className="text-sm text-red-600 sm:col-span-4 dark:text-red-400">{state.error}</p>
-      ) : null}
+    <form action={formAction}>
+      <FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-[2fr_1.5fr_1fr]">
+          <Field data-invalid={invalid || undefined}>
+            <FieldLabel htmlFor="url">URL</FieldLabel>
+            <Input
+              id="url"
+              name="url"
+              placeholder="https://example.com"
+              aria-invalid={invalid || undefined}
+              required
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="title">Title</FieldLabel>
+            <Input id="title" name="title" placeholder="Optional" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tag">Tag</FieldLabel>
+            <Input id="tag" name="tag" placeholder="Optional" />
+          </Field>
+        </div>
+        {state?.error ? <FieldError>{state.error}</FieldError> : null}
+        <Field orientation="horizontal">
+          <Button type="submit" disabled={pending}>
+            <PlusIcon data-icon="inline-start" />
+            {pending ? 'Adding…' : 'Add bookmark'}
+          </Button>
+        </Field>
+      </FieldGroup>
     </form>
   );
 }

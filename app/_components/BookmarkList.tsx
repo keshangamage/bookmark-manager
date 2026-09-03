@@ -1,46 +1,49 @@
+import {BookmarkIcon, Trash2Icon} from 'lucide-react';
+import {Badge} from '@/components/ui/badge';
+import {Button} from '@/components/ui/button';
+import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from '@/components/ui/empty';
+import {Item, ItemActions, ItemContent, ItemDescription, ItemTitle} from '@/components/ui/item';
 import {deleteBookmark} from '@/lib/bookmarks';
 import type {Bookmark} from '@/lib/db/schema';
 
 export default function BookmarkList({items}: {items: Bookmark[]}) {
   if (items.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
-        No bookmarks yet. Add your first one above.
-      </p>
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <BookmarkIcon />
+          </EmptyMedia>
+          <EmptyTitle>No bookmarks yet</EmptyTitle>
+          <EmptyDescription>Add your first one using the form above.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   return (
-    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex flex-col gap-2">
       {items.map((item) => (
-        <li key={item.id} className="flex items-start justify-between gap-4 p-4">
-          <div className="min-w-0">
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="font-medium hover:underline"
-            >
-              {item.title || item.url}
-            </a>
-            <p className="truncate text-xs text-zinc-500">{item.url}</p>
-            {item.tag ? (
-              <span className="mt-2 inline-block rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                {item.tag}
-              </span>
-            ) : null}
-          </div>
-          <form action={deleteBookmark}>
-            <input type="hidden" name="id" value={item.id} />
-            <button
-              type="submit"
-              className="shrink-0 text-sm text-zinc-500 hover:text-red-600 dark:hover:text-red-400"
-            >
-              Delete
-            </button>
-          </form>
-        </li>
+        <Item key={item.id} variant="outline">
+          <ItemContent>
+            <ItemTitle>
+              <a href={item.url} target="_blank" rel="noreferrer noopener" className="hover:underline">
+                {item.title || item.url}
+              </a>
+              {item.tag ? <Badge variant="secondary">{item.tag}</Badge> : null}
+            </ItemTitle>
+            <ItemDescription>{item.url}</ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <form action={deleteBookmark}>
+              <input type="hidden" name="id" value={item.id} />
+              <Button type="submit" variant="ghost" size="icon-sm" aria-label="Delete bookmark">
+                <Trash2Icon />
+              </Button>
+            </form>
+          </ItemActions>
+        </Item>
       ))}
-    </ul>
+    </div>
   );
 }

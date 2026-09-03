@@ -17,6 +17,7 @@ or delete another's rows.
 | Database | Neon Postgres (serverless) |
 | ORM | Drizzle ORM 0.45 + drizzle-kit |
 | UI | Tailwind CSS v4 + shadcn/ui (`nova` preset), `next-themes` |
+| Type | Bricolage Grotesque (display), Geist Sans (body), Geist Mono (URLs) |
 | Runtime | Bun 1.3 (npm/pnpm work too) |
 
 ## How it fits together

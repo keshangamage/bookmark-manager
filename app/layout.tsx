@@ -13,6 +13,9 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// AsgardeoProvider reads headers(), so nothing here can be prerendered.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Bookmark Manager',
   description: 'A personal bookmark manager secured with WSO2 Asgardeo.',

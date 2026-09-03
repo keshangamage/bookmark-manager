@@ -1,18 +1,19 @@
-import {SignedIn, SignOutButton} from '@asgardeo/nextjs';
+import {SignedIn} from '@asgardeo/nextjs';
 import Link from 'next/link';
+import {SignOutButton} from './AuthButtons';
 import UserBadge from './UserBadge';
 
 export default function SiteHeader() {
   return (
-    <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="font-semibold tracking-tight">
+    <header className="border-b">
+      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-6 py-3">
+        <Link href="/" className="font-heading font-semibold tracking-tight">
           Bookmark Manager
         </Link>
         <SignedIn>
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3">
             <UserBadge />
-            <SignOutButton>Sign Out</SignOutButton>
+            <SignOutButton />
           </div>
         </SignedIn>
       </div>

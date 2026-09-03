@@ -1,6 +1,7 @@
 import {SignedIn} from '@asgardeo/nextjs';
 import Link from 'next/link';
 import {SignOutButton} from './AuthButtons';
+import ThemeToggle from './ThemeToggle';
 import UserBadge from './UserBadge';
 
 export default function SiteHeader() {
@@ -10,12 +11,13 @@ export default function SiteHeader() {
         <Link href="/" className="font-heading font-semibold tracking-tight">
           Bookmark Manager
         </Link>
-        <SignedIn>
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <SignedIn>
             <UserBadge />
             <SignOutButton />
-          </div>
-        </SignedIn>
+          </SignedIn>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

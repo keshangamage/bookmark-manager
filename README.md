@@ -16,7 +16,7 @@ or delete another's rows.
 | Auth | Asgardeo via `@asgardeo/nextjs` 0.3.29 |
 | Database | Neon Postgres (serverless) |
 | ORM | Drizzle ORM 0.45 + drizzle-kit |
-| UI | Tailwind CSS v4 + shadcn/ui (`nova` preset) |
+| UI | Tailwind CSS v4 + shadcn/ui (`nova` preset), `next-themes` |
 | Runtime | Bun 1.3 (npm/pnpm work too) |
 
 ## How it fits together
@@ -314,8 +314,10 @@ nothing when the URL is unset, so a misconfiguration shows as a missing button r
   it 404s rather than serving a route.
 - shadcn's docs mention a `base-nova` preset; the CLI rejects it. Valid names are `nova`, `vega`,
   `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea`.
-- shadcn configures dark mode as a **class** variant (`.dark`), not `prefers-color-scheme`, so the
-  app no longer follows the OS theme without a theme provider.
+- shadcn configures dark mode as a **class** variant (`.dark`), not `prefers-color-scheme`, so
+  adopting it silently disables OS-following dark mode. `next-themes` (`defaultTheme="system"`)
+  restores it; `<html>` needs `suppressHydrationWarning` because the theme class is set before
+  hydration.
 
 ## Testing the security properties
 

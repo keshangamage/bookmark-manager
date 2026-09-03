@@ -15,25 +15,32 @@ export default function AddBookmarkForm() {
   const invalid = Boolean(state?.error);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="rounded-2xl border bg-card p-4">
       <FieldGroup>
-        <div className="grid gap-4 sm:grid-cols-[2fr_1.5fr_1fr]">
+        <div className="grid gap-4 sm:grid-cols-[2fr_1.4fr_1fr]">
           <Field data-invalid={invalid || undefined}>
-            <FieldLabel htmlFor="url">URL</FieldLabel>
+            <FieldLabel htmlFor="url" className="font-mono text-xs tracking-wide uppercase">
+              Link
+            </FieldLabel>
             <Input
               id="url"
               name="url"
-              placeholder="https://example.com"
+              placeholder="example.com/article"
+              className="font-mono"
               aria-invalid={invalid || undefined}
               required
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="title">Title</FieldLabel>
+            <FieldLabel htmlFor="title" className="font-mono text-xs tracking-wide uppercase">
+              Title
+            </FieldLabel>
             <Input id="title" name="title" placeholder="Optional" />
           </Field>
           <Field>
-            <FieldLabel htmlFor="tag">Tag</FieldLabel>
+            <FieldLabel htmlFor="tag" className="font-mono text-xs tracking-wide uppercase">
+              Tag
+            </FieldLabel>
             <Input id="tag" name="tag" placeholder="Optional" />
           </Field>
         </div>
@@ -41,7 +48,7 @@ export default function AddBookmarkForm() {
         <Field orientation="horizontal">
           <Button type="submit" disabled={pending}>
             <PlusIcon data-icon="inline-start" />
-            {pending ? 'Adding…' : 'Add bookmark'}
+            {pending ? 'Saving…' : 'Save bookmark'}
           </Button>
         </Field>
       </FieldGroup>

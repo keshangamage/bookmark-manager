@@ -27,7 +27,8 @@ export default function RootLayout({children}: LayoutProps<'/'>) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/* Browser extensions inject attributes on <body> before React hydrates. */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         {/* Org has no branding configured; skip the lookup. */}
         <AsgardeoProvider preferences={{theme: {inheritFromBranding: false}}}>
           {children}

@@ -1,7 +1,7 @@
 'use client';
 
 import {useAsgardeo} from '@asgardeo/nextjs';
-import {LogInIcon, LogOutIcon} from 'lucide-react';
+import {LogInIcon, LogOutIcon, UserPlusIcon} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 
 // The SDK's own buttons render emotion-styled markup that ignores className,
@@ -12,6 +12,20 @@ export function SignInButton() {
     <Button onClick={() => void signIn?.()} disabled={isLoading}>
       <LogInIcon data-icon="inline-start" />
       Sign In
+    </Button>
+  );
+}
+
+// signUpUrl comes from NEXT_PUBLIC_ASGARDEO_SIGN_UP_URL. Renders nothing when
+// unset, rather than showing a button that silently does nothing.
+export function SignUpButton() {
+  const {signUpUrl} = useAsgardeo();
+  if (!signUpUrl) return null;
+
+  return (
+    <Button variant="outline" nativeButton={false} render={<a href={signUpUrl} />}>
+      <UserPlusIcon data-icon="inline-start" />
+      Create account
     </Button>
   );
 }

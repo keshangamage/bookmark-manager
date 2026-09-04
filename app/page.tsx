@@ -28,6 +28,12 @@ export default async function Home({searchParams}: PageProps<'/'>) {
     );
   }
 
+  // Only /api/silent-sign-in asks for prompt=none, so this is a silent attempt
+  // that found no Asgardeo session — send them to the login page it skipped.
+  if (error === 'login_required') {
+    redirect('/api/sign-in');
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-6 py-16">
       <div className="grid w-full items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
@@ -45,14 +51,6 @@ export default async function Home({searchParams}: PageProps<'/'>) {
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SignInButton />
           </div>
-
-          {/* Only /api/silent-sign-in asks for prompt=none, so this is a user
-              who landed on /welcome without an Asgardeo session to reuse. */}
-          {error === 'login_required' && (
-            <p className="mt-4 text-sm text-muted-foreground">
-              Your account is ready — sign in to continue.
-            </p>
-          )}
         </div>
 
         <BookmarkPreview />

@@ -5,6 +5,7 @@ import {revalidatePath} from 'next/cache';
 import {getCurrentUserId} from './auth';
 import {db} from './db';
 import {bookmarks, type Bookmark} from './db/schema';
+import {normaliseUrl} from './url';
 
 export type ActionResult = {error: string} | {error?: never};
 
@@ -12,19 +13,6 @@ async function requireUserId(): Promise<string> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('Not authenticated');
   return userId;
-}
-
-// Only http(s), and only a parseable URL.
-function normaliseUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const parsed = new URL(candidate);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 export async function listBookmarks(): Promise<Bookmark[]> {

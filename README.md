@@ -1,5 +1,7 @@
 # Bookmark Manager
 
+[![CI](https://github.com/keshangamage/bookmark-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/keshangamage/bookmark-manager/actions/workflows/ci.yml)
+
 A personal bookmark manager built to learn [WSO2 Asgardeo](https://wso2.com/asgardeo/) — an
 Identity-as-a-Service platform — with a real Next.js app rather than a login-only demo.
 
@@ -72,8 +74,10 @@ In the [Asgardeo Console](https://console.asgardeo.io/):
    [Gotchas](#1-there-is-no-apiauthcallback-route) — this is the single most likely thing to get wrong.
 3. On the **User Attributes** tab, make sure `email` is a requested attribute, otherwise the header
    shows a user ID instead of an email address.
-4. **Login & Registration → Self-Registration → Enable**, so new users can create accounts. The
-   "Create account" button links to Asgardeo's hosted registration page.
+4. **Flows → Self Registration**, load a template (Basic Details loads by default), click
+   **Save Draft**, then toggle the switch in the top-right to publish. Until this flow is
+   published, the "Create account" button reaches a registration page but sign-ups cannot
+   complete. Note this lives under *Flows*, not under *Login & Registration*.
 5. Copy the **Client ID** and **Client Secret** from the Protocol tab.
 
 ### 3. Configure Neon
@@ -131,6 +135,8 @@ bun run dev      # http://localhost:3000
 | `bun run build` | Production build |
 | `bun run start` | Serve the production build |
 | `bun run lint` | ESLint |
+| `bun run test` | Unit tests (DB suite skips without `DATABASE_URL`) |
+| `bun run test:local` | Full suite, loading `.env.local` |
 | `bun run db:generate` | Generate a migration from `lib/db/schema.ts` |
 | `bun run db:migrate` | Apply pending migrations to Neon |
 | `bun run db:studio` | Drizzle Studio |
@@ -280,9 +286,12 @@ render arguments, so you get `signIn: undefined`.
 **Fix:** call the public `useAsgardeo()` hook directly — which is what those buttons do internally —
 and render your own button (`app/_components/AuthButtons.tsx`).
 
-### 12. The SDK's `<SignUpButton>` is a no-op out of the box
+### 12. Sign-up: a no-op button, and a legacy page that silently shadows your flow
 
-`signUpAction` hardcodes an empty sign-up URL when called without a payload:
+Two separate traps here.
+
+**The SDK's `<SignUpButton>` does nothing.** `signUpAction` hardcodes an empty sign-up URL when
+called without a payload:
 
 ```js
 if (!payload) {
@@ -291,25 +300,86 @@ if (!payload) {
 }
 ```
 
-`SignUpButton` only navigates `if (signUpUrl)`, so with nothing configured the button renders and
-does nothing at all — no error, no navigation. You must set
-`NEXT_PUBLIC_ASGARDEO_SIGN_UP_URL`.
+`SignUpButton` only navigates `if (signUpUrl)`, so with nothing configured it renders and does
+nothing at all — no error, no navigation. You must set `NEXT_PUBLIC_ASGARDEO_SIGN_UP_URL`.
 
-Nor can you deep-link to registration through `signIn()`: passing options makes the payload
-non-empty, which sends the SDK down its *embedded* flow instead of the redirect flow.
+`signIn({prompt: 'create'})` is not a workaround either: passing options makes the payload
+non-empty, which switches the SDK to its *embedded* flow. And the OIDC `prompt=create` parameter is
+rejected outright by Asgardeo with `Invalid prompt variables passed with the authorization request`.
 
-The registration URL is not in the SDK. I found it by probing endpoints until one returned a real
-sign-up form:
+**Then the harder one: there are two registration endpoints, and the wrong one still works.**
+
+| Endpoint | Serves |
+| --- | --- |
+| `/accountrecoveryendpoint/register.do` | the **legacy** form (First Name, Birth Date, Mobile, Country) |
+| `/accounts/register?flowType=REGISTRATION` | the **flow** you built under *Flows → Self Registration* |
+
+The legacy endpoint returns `200` and renders a perfectly functional sign-up page, so nothing looks
+broken — you just silently get a different form than the one you designed, and none of your flow's
+steps (OTP verification, custom fields) apply. Use:
 
 ```
-https://accounts.asgardeo.io/t/<org>/accountrecoveryendpoint/register.do?client_id=<id>&sp=<app-name>
+https://accounts.asgardeo.io/t/<org>/accounts/register?flowType=REGISTRATION&client_id=<id>&redirect_uri=<app-origin>&response_type=code&scope=openid
 ```
 
-Note this is on `accounts.asgardeo.io`, not the `api.asgardeo.io` host used for
-`NEXT_PUBLIC_ASGARDEO_BASE_URL` — the same path on `api.` returns 403. `SignUpButton` renders
-nothing when the URL is unset, so a misconfiguration shows as a missing button rather than a dead one.
+Note the host is `accounts.asgardeo.io`, not the `api.asgardeo.io` of
+`NEXT_PUBLIC_ASGARDEO_BASE_URL` — the same path on `api.` returns 403.
 
-### 13. Smaller ones
+To find this endpoint yourself: publish the flow, then load the hosted login page and read the
+"Create an account" link's `href`. Before the flow is published that link is absent entirely (the
+page ships a `handleSignupClick()` handler with nothing wired to it), which is a quick way to check
+whether self-registration is actually live. The link carries a per-request `sessionDataKey`, but
+that parameter turns out to be optional, so the URL can be configured statically.
+
+`SignUpButton` renders nothing when the URL is unset, so a misconfiguration shows as a missing
+button rather than a dead one.
+
+### 13. A successful sign-in looks like a failed one
+
+After entering credentials you land back on `/` and see the signed-out landing page for several
+seconds before the dashboard appears.
+
+Nothing is broken. Asgardeo redirects to `/?code=…&state=…`, but the session cookie does not exist
+until the *client* provider exchanges the code. The server render therefore sees no session and
+renders the landing page for the length of that round-trip.
+
+**Fix:** detect the callback parameters server-side and render a signing-in state instead:
+
+```tsx
+const {code, state, error} = await searchParams;
+if (code && state && !error) return <SigningIn />;
+```
+
+Treat an `error` parameter as a cancelled login rather than a pending one, and include an escape
+link — a stale or replayed code never completes, and the client keeps retrying the same URL.
+
+### 14. `router.push` to an external URL runs the OIDC handshake twice
+
+Clicking sign-in took 6–7 seconds. A request trace showed why:
+
+```
+  46ms  server action         →   72ms  ✅ 26ms
+  77ms  GET /oauth2/authorize → 1765ms  302
+1765ms  fetch login.do?_rsc=  → 2805ms  ✗ CORS failure
+2815ms  GET /oauth2/authorize → 3976ms  302   ← whole handshake repeated
+3976ms  login.do              → 5116ms  200
+```
+
+The SDK navigates with `router.push(authorizeUrl)`. Next's client router treats that as an internal
+navigation and fetches an RSC payload from `accounts.asgardeo.io`, which fails CORS, then falls back
+to a hard navigation that repeats the entire authorize round-trip — roughly 2.7s of pure waste.
+
+**Fix:** start sign-in from a route handler that issues a real server redirect
+(`app/api/sign-in/route.ts`), and make the button a plain `<a href="/api/sign-in">`. One handshake,
+no RSC fetch: **6–7s → 3–4s, and zero failed requests.**
+
+The catch is that `handleOAuthCallbackAction` refuses to exchange the code without the temporary
+session cookie that the SDK's own `signInAction` sets, so the route has to mint that cookie itself,
+mirroring `SessionManager.createTempSession` (HS256 over `ASGARDEO_SECRET`, `{sessionId, type:
+'temp'}`, 15-minute expiry, `httpOnly` + `sameSite: lax`). Same coupling trade-off as gotcha 8 —
+worth re-checking on an SDK upgrade.
+
+### 15. Smaller ones
 
 - A folder named `_debug/` is a **private folder** in the App Router and is excluded from routing —
   it 404s rather than serving a route.
@@ -320,7 +390,26 @@ nothing when the URL is unset, so a misconfiguration shows as a missing button r
   restores it; `<html>` needs `suppressHydrationWarning` because the theme class is set before
   hydration.
 
-## Testing the security properties
+## Tests and CI
+
+`bun run test:local` runs the whole suite; `bun run test` runs it without loading `.env.local`,
+which is what CI does.
+
+| File | Covers |
+| --- | --- |
+| `tests/url.test.ts` | URL normalisation, including rejecting `javascript:` and `data:` bookmarks |
+| `tests/session-token.test.ts` | Session cookie verification: forged signatures, tampered tokens, expiry, and `temp` tokens being refused |
+| `tests/scoping.test.ts` | Per-user isolation against a real database, including cross-user deletes |
+
+`tests/scoping.test.ts` needs `DATABASE_URL` and **skips** without one, so the unit tests still run
+on forks and in environments with no database. It writes rows under `citest-*` user ids and removes
+them afterwards.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, tests, and a production build on
+every push and pull request. The build step uses placeholder credentials: every route is dynamic, so
+it never contacts Asgardeo or Postgres.
+
+## Testing the security properties by hand
 
 Asgardeo signs the session cookie with `ASGARDEO_SECRET`, so a valid session can be minted locally
 to test scoping without going through a browser login:

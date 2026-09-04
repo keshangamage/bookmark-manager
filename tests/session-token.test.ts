@@ -39,8 +39,10 @@ describe('readUserIdFromSessionToken', () => {
 
   it('rejects a tampered signature', async () => {
     const token = await mint({type: 'session'});
-    const tampered = `${token.slice(0, -1)}${token.at(-1) === 'A' ? 'B' : 'A'}`;
-    await expect(readUserIdFromSessionToken(tampered, SECRET)).resolves.toBeNull();
+    
+    const [header, payload, signature] = token.split('.');
+    const flipped = `${signature.startsWith('A') ? 'B' : 'A'}${signature.slice(1)}`;
+    await expect(readUserIdFromSessionToken(`${header}.${payload}.${flipped}`, SECRET)).resolves.toBeNull();
   });
 
   it('rejects an expired token', async () => {

@@ -20,6 +20,13 @@ describe.skipIf(!url)('per-user scoping', () => {
     db.select().from(bookmarks).where(eq(bookmarks.userId, userId)).orderBy(desc(bookmarks.createdAt));
   const deleteAs = (userId: string, id: string) =>
     db.delete(bookmarks).where(and(eq(bookmarks.id, id), eq(bookmarks.userId, userId))).returning();
+  // Mirrors updateBookmark() from lib/bookmarks.ts.
+  const updateAs = (userId: string, id: string, values: {url: string; title: string; tag: string}) =>
+    db
+      .update(bookmarks)
+      .set(values)
+      .where(and(eq(bookmarks.id, id), eq(bookmarks.userId, userId)))
+      .returning();
 
   beforeAll(async () => {
     await db.insert(bookmarks).values([
@@ -40,6 +47,20 @@ describe.skipIf(!url)('per-user scoping', () => {
 
   it('an unknown user sees nothing', async () => {
     expect(await listFor(`citest-nobody-${crypto.randomUUID()}`)).toEqual([]);
+  });
+
+  it('one user cannot edit another user\'s row, even knowing its id', async () => {
+    const [bobRow] = await listFor(bob);
+    const values = {url: 'https://hijacked.example.com', title: 'hijacked', tag: 'x'};
+    expect(await updateAs(alice, bobRow.id, values)).toHaveLength(0);
+    expect((await listFor(bob)).map((r) => r.title)).toEqual(['bob-row']);
+  });
+
+  it('a user can edit their own row', async () => {
+    const [aliceRow] = await listFor(alice);
+    const values = {url: 'https://alice.example.com/edited', title: 'alice-edited', tag: 'z'};
+    const [updated] = await updateAs(alice, aliceRow.id, values);
+    expect(updated).toMatchObject(values);
   });
 
   it('one user cannot delete another user\'s row, even knowing its id', async () => {

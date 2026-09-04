@@ -146,6 +146,8 @@ bun run dev      # http://localhost:3000
 ```
 app/
   page.tsx                  landing page; redirects to /dashboard when signed in
+  api/sign-in/route.ts      starts sign-in with a server redirect
+  api/bookmarks/route.ts    Bearer-token API for non-browser clients
   error.tsx                 error boundary for any route below the root layout
   global-error.tsx          replaces the root layout when it is the layout that failed
   not-found.tsx             404
@@ -155,6 +157,8 @@ app/
 components/ui/              shadcn/ui components
 lib/
   auth.ts                   getSessionId() and getCurrentUserId()
+  access-token.ts           verifies OAuth access tokens against the tenant JWKS
+  bookmarks-repo.ts         data access shared by the actions and the API
   bookmarks.ts              server actions: list / add / delete
   db/schema.ts              Drizzle schema
   db/index.ts               Drizzle client over @neondatabase/serverless
@@ -394,6 +398,40 @@ worth re-checking on an SDK upgrade.
   restores it; `<html>` needs `suppressHydrationWarning` because the theme class is set before
   hydration.
 
+## The bookmarks API
+
+The dashboard uses server actions and a session cookie. `/api/bookmarks` exists for everything else —
+scripts, a CLI, a mobile client — and authenticates differently: an **OAuth Bearer access token**,
+verified against the tenant JWKS. Cookies are not accepted, so another site cannot drive it with the
+user's ambient credentials.
+
+| Request | Behaviour |
+| --- | --- |
+| `GET /api/bookmarks` | the caller's own bookmarks |
+| `GET /api/bookmarks?all=true` | every user's bookmarks — requires the admin role |
+| `POST /api/bookmarks` | `{url, title?, tag?}`; the url is normalised and must be http(s) |
+
+Verification checks the RS256 signature against `<baseUrl>/oauth2/jwks`, plus the issuer
+(`<baseUrl>/oauth2/token`) and the audience (the client id). Failures return `401` with a
+`WWW-Authenticate` header and never say *which* check failed, so the response cannot be used to
+probe for valid tokens. Requesting `?all=true` without the role returns `403`.
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" https://<host>/api/bookmarks
+curl -X POST -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+     -d '{"url":"example.com/article","tag":"reading"}' https://<host>/api/bookmarks
+```
+
+### Enabling the admin role
+
+Create a role in the Asgardeo console (**User Management → Roles**), assign it to a user, and make
+sure the role attribute is mapped into the token for this application. The role name defaults to
+`bookmark-admin` and is overridable with `ASGARDEO_ADMIN_ROLE`.
+
+Asgardeo emits roles inconsistently depending on that mapping — sometimes as `roles`, sometimes as
+`groups`, and as either an array or a delimited string — so `rolesFrom()` accepts all of those shapes
+rather than assuming one.
+
 ## Tests and CI
 
 `bun run test:local` runs the whole suite; `bun run test` runs it without loading `.env.local`,
@@ -404,6 +442,7 @@ which is what CI does.
 | `tests/url.test.ts` | URL normalisation, including rejecting `javascript:` and `data:` bookmarks |
 | `tests/session-token.test.ts` | Session cookie verification: forged signatures, tampered tokens, expiry, and `temp` tokens being refused |
 | `tests/scoping.test.ts` | Per-user isolation against a real database, including cross-user deletes |
+| `tests/access-token.test.ts` | Access-token verification against a locally generated JWKS: bad signatures, wrong issuer, wrong audience, expiry, plus header and role-claim parsing |
 
 `tests/scoping.test.ts` needs `DATABASE_URL` and **skips** without one, so the unit tests still run
 on forks and in environments with no database. It writes rows under `citest-*` user ids and removes

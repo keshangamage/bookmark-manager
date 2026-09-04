@@ -1,10 +1,9 @@
 'use server';
 
-import {and, desc, eq} from 'drizzle-orm';
 import {revalidatePath} from 'next/cache';
 import {getCurrentUserId} from './auth';
-import {db} from './db';
-import {bookmarks, type Bookmark} from './db/schema';
+import {createForUser, deleteForUser, listForUser} from './bookmarks-repo';
+import type {Bookmark} from './db/schema';
 import {normaliseUrl} from './url';
 
 export type ActionResult = {error: string} | {error?: never};
@@ -16,12 +15,7 @@ async function requireUserId(): Promise<string> {
 }
 
 export async function listBookmarks(): Promise<Bookmark[]> {
-  const userId = await requireUserId();
-  return db
-    .select()
-    .from(bookmarks)
-    .where(eq(bookmarks.userId, userId))
-    .orderBy(desc(bookmarks.createdAt));
+  return listForUser(await requireUserId());
 }
 
 export async function addBookmark(formData: FormData): Promise<ActionResult> {
@@ -33,12 +27,7 @@ export async function addBookmark(formData: FormData): Promise<ActionResult> {
   const title = String(formData.get('title') ?? '').trim();
   const tag = String(formData.get('tag') ?? '').trim();
 
-  await db.insert(bookmarks).values({
-    userId,
-    url,
-    title: title || null,
-    tag: tag || null,
-  });
+  await createForUser(userId, {url, title: title || null, tag: tag || null});
 
   revalidatePath('/dashboard');
   return {};
@@ -50,8 +39,7 @@ export async function deleteBookmark(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  // userId in the WHERE clause is what stops one user deleting another's row.
-  await db.delete(bookmarks).where(and(eq(bookmarks.id, id), eq(bookmarks.userId, userId)));
+  await deleteForUser(userId, id);
 
   revalidatePath('/dashboard');
 }

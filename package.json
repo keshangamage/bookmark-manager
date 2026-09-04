@@ -12,7 +12,8 @@
     "db:studio": "bun --env-file=.env.local drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:local": "bun --env-file=.env.local vitest run"
+    "test:local": "bun --env-file=.env.local vitest run",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@asgardeo/nextjs": "^0.3.29",

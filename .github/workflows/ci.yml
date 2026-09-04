@@ -25,8 +25,10 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # `next typegen` first: LayoutProps and PageProps are generated types, and
+      # a fresh checkout has no .next, so tsc alone fails here.
       - name: Typecheck
-        run: bunx tsc --noEmit
+        run: bun run typecheck
 
       # DATABASE_URL is optional. Without it the per-user scoping suite skips
       # and only the unit tests run, so forks and Dependabot PRs still pass.

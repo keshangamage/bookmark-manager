@@ -1,7 +1,7 @@
 import {CookieConfig} from '@asgardeo/node';
 import {asgardeo} from '@asgardeo/nextjs/server';
 import {cookies} from 'next/headers';
-import {readUserIdFromSessionToken} from './session-token';
+import {readAccessTokenFromSessionToken, readUserIdFromSessionToken} from './session-token';
 
 // Reads and verifies the session cookie. Null when signed out or expired.
 export async function getSessionId(): Promise<string | null> {
@@ -14,4 +14,10 @@ export async function getSessionId(): Promise<string | null> {
 export async function getCurrentUserId(): Promise<string | null> {
   const token = (await cookies()).get(CookieConfig.SESSION_COOKIE_NAME)?.value;
   return readUserIdFromSessionToken(token, process.env.ASGARDEO_SECRET);
+}
+
+
+export async function getAccessToken(): Promise<string | null> {
+  const token = (await cookies()).get(CookieConfig.SESSION_COOKIE_NAME)?.value;
+  return readAccessTokenFromSessionToken(token, process.env.ASGARDEO_SECRET);
 }

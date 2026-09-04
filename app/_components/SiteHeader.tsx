@@ -16,6 +16,12 @@ export default function SiteHeader() {
         </Link>
         <div className="flex min-w-0 items-center gap-3">
           <SignedIn>
+            <Link
+              href="/profile"
+              className="text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:underline"
+            >
+              Profile
+            </Link>
             <UserBadge />
             <SignOutButton />
           </SignedIn>

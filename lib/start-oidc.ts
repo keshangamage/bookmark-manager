@@ -4,7 +4,7 @@ import {SignJWT} from 'jose';
 import {NextResponse} from 'next/server';
 
 
-export async function startAuthorization(customParams: Record<string, string> = {}) {
+export async function startAuthorization() {
   const secret = process.env.ASGARDEO_SECRET;
   if (!secret) throw new Error('ASGARDEO_SECRET is not set.');
 
@@ -13,7 +13,7 @@ export async function startAuthorization(customParams: Record<string, string> = 
   await client.initialize({baseUrl: process.env.NEXT_PUBLIC_ASGARDEO_BASE_URL!});
 
   const sessionId = generateSessionId();
-  const authorizeUrl = String(await client.getAuthorizeRequestUrl(customParams, sessionId));
+  const authorizeUrl = String(await client.getAuthorizeRequestUrl({}, sessionId));
 
   const tempSession = await new SignJWT({sessionId, type: 'temp'})
     .setProtectedHeader({alg: 'HS256'})

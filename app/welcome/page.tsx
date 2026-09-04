@@ -1,11 +1,11 @@
 import {redirect} from 'next/navigation';
-import {getSessionId, hasTriedSilentSignIn} from '@/lib/auth';
+import {getSessionId} from '@/lib/auth';
 
-
+// Asgardeo's Access URL for this app points here, so it is where a sign-up
+// lands once the registration flow's countdown fires. Straight to /authorize:
+// with forceAuth=false Asgardeo reuses a session if it has one and returns a
+// code without rendering anything, and shows its login page when it does not.
 export default async function WelcomePage() {
   if (await getSessionId()) redirect('/dashboard');
-  // Fall back to the hosted login page, not the landing page: someone who
-  // reached /welcome has already decided to get into the app.
-  if (await hasTriedSilentSignIn()) redirect('/api/sign-in');
-  redirect('/api/silent-sign-in');
+  redirect('/api/sign-in');
 }

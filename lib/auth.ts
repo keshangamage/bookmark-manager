@@ -15,13 +15,3 @@ export async function getCurrentUserId(): Promise<string | null> {
   const token = (await cookies()).get(CookieConfig.SESSION_COOKIE_NAME)?.value;
   return readUserIdFromSessionToken(token, process.env.ASGARDEO_SECRET);
 }
-
-/**
- * Marks that /welcome has already spent its one silent sign-in attempt, so a
- * failed attempt cannot bounce the browser back into another one.
- */
-export const SILENT_SIGN_IN_COOKIE = 'silent-sign-in-attempted';
-
-export async function hasTriedSilentSignIn(): Promise<boolean> {
-  return (await cookies()).has(SILENT_SIGN_IN_COOKIE);
-}

@@ -4,12 +4,12 @@ import {useAsgardeo} from '@asgardeo/nextjs';
 import {LogInIcon, LogOutIcon, UserPlusIcon} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 
-// The SDK's own buttons render emotion-styled markup that ignores className,
-// so drive the context hook directly and use a shadcn Button instead.
+// Plain navigation to our own route. Going through the SDK's signIn() would
+// push an external URL through the Next router, which costs an extra failed
+// RSC fetch and a repeated authorize round-trip.
 export function SignInButton() {
-  const {signIn, isLoading} = useAsgardeo();
   return (
-    <Button onClick={() => void signIn?.()} disabled={isLoading}>
+    <Button nativeButton={false} render={<a href="/api/sign-in" />}>
       <LogInIcon data-icon="inline-start" />
       Sign In
     </Button>
@@ -30,6 +30,8 @@ export function SignUpButton() {
   );
 }
 
+// The SDK's own button renders emotion-styled markup that ignores className,
+// so drive the context hook directly and use a shadcn Button instead.
 export function SignOutButton() {
   const {signOut, isLoading} = useAsgardeo();
   return (

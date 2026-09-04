@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push supersedes an in-flight run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      # DATABASE_URL is optional. Without it the per-user scoping suite skips
+      # and only the unit tests run, so forks and Dependabot PRs still pass.
+      - name: Test
+        run: bun run test
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Placeholders only: every route is dynamic, so the build never contacts
+      # Asgardeo or the database. Real values live in Vercel.
+      - name: Build
+        run: bun run build
+        env:
+          NEXT_PUBLIC_ASGARDEO_BASE_URL: https://api.asgardeo.io/t/example
+          NEXT_PUBLIC_ASGARDEO_CLIENT_ID: ci-placeholder
+          NEXT_PUBLIC_ASGARDEO_SCOPES: openid profile email internal_login
+          ASGARDEO_CLIENT_SECRET: ci-placeholder
+          ASGARDEO_SECRET: ci-placeholder-secret
+          DATABASE_URL: postgresql://u:p@ci.example.com/db
+          DATABASE_URL_UNPOOLED: postgresql://u:p@ci.example.com/db

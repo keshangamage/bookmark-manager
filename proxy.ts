@@ -1,6 +1,6 @@
 import {asgardeoMiddleware, createRouteMatcher} from '@asgardeo/nextjs/middleware';
 
-const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);
+const isProtectedRoute = createRouteMatcher(['/dashboard(.*)', '/profile(.*)']);
 
 // Completes the OIDC redirect and refreshes tokens.
 // Next.js 16 renamed middleware.ts to proxy.ts.

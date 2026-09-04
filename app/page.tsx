@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {redirect} from 'next/navigation';
-import {SignInButton, SignUpButton} from '@/app/_components/AuthButtons';
+import {SignInButton} from '@/app/_components/AuthButtons';
 import BookmarkPreview from '@/app/_components/BookmarkPreview';
 import {Spinner} from '@/components/ui/spinner';
 import {getSessionId} from '@/lib/auth';
@@ -44,8 +44,15 @@ export default async function Home({searchParams}: PageProps<'/'>) {
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SignInButton />
-            <SignUpButton />
           </div>
+
+          {/* Only /api/silent-sign-in asks for prompt=none, so this is a user
+              who landed on /welcome without an Asgardeo session to reuse. */}
+          {error === 'login_required' && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Your account is ready — sign in to continue.
+            </p>
+          )}
         </div>
 
         <BookmarkPreview />

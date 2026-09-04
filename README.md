@@ -5,7 +5,7 @@
 A personal bookmark manager built to learn [WSO2 Asgardeo](https://wso2.com/asgardeo/) — an
 Identity-as-a-Service platform — with a real Next.js app rather than a login-only demo.
 
-Sign up or sign in with Asgardeo (OIDC), land on a protected dashboard, and save, tag, and delete your own
+Sign in with Asgardeo (OIDC), land on a protected dashboard, and save, tag, and delete your own
 bookmarks. Every bookmark is scoped to the `sub` claim of the signed-in user, so no account can see
 or delete another's rows.
 
@@ -100,8 +100,6 @@ NEXT_PUBLIC_ASGARDEO_CLIENT_ID="<client-id>"
 ASGARDEO_CLIENT_SECRET="<client-secret>"
 NEXT_PUBLIC_ASGARDEO_SCOPES="openid profile email internal_login"
 
-# Self-registration page. Must be set explicitly — see gotcha 12.
-NEXT_PUBLIC_ASGARDEO_SIGN_UP_URL="https://accounts.asgardeo.io/t/<your-org>/accountrecoveryendpoint/register.do?client_id=<client-id>&sp=<application-name>"
 
 # Signs the session JWT cookie. Generate with:
 #   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
@@ -294,53 +292,66 @@ render arguments, so you get `signIn: undefined`.
 **Fix:** call the public `useAsgardeo()` hook directly — which is what those buttons do internally —
 and render your own button (`app/_components/AuthButtons.tsx`).
 
-### 12. Sign-up: a no-op button, and a legacy page that silently shadows your flow
+### 12. Registration cannot be deep-linked
 
-Two separate traps here.
+The SDK's `<SignUpButton>` does nothing: `signUpAction` hardcodes an empty sign-up URL when called
+without a payload, and the button only navigates `if (signUpUrl)`. `signIn({prompt: 'create'})` is
+not a workaround either — passing options switches the SDK to its embedded flow, and Asgardeo rejects
+the OIDC `prompt=create` parameter outright with `Invalid prompt variables passed`.
 
-**The SDK's `<SignUpButton>` does nothing.** `signUpAction` hardcodes an empty sign-up URL when
-called without a payload:
+The obvious fix is to link straight at the registration page. **It does not work**, and it fails in a
+way that looks like success.
+
+Asgardeo's own "Create an account" link carries the whole OIDC transaction:
+
+```
+/accounts/register?flowType=REGISTRATION&sessionDataKey=…&commonAuthCallerPath=/t/<org>/oauth2/authorize
+                  &relyingParty=…&spId=…&type=oidc&redirect_uri=…&state=…
+```
+
+A hand-built URL with just `flowType`, `client_id` and `redirect_uri` **renders the correct
+registration form**, which is what makes this so easy to get wrong. But there is no pending
+transaction to resume, so when registration completes Asgardeo has nowhere to send the user and drops
+them in My Account. The account exists; the app never receives a code; the user appears not to be
+signed in.
+
+I confirmed this the wrong way round at first — I checked that the page rendered without
+`sessionDataKey` and concluded the parameter was optional. Rendering is not completing.
+
+Nor can the key be fetched ahead of time: `/authorize` sets HttpOnly cookies (`wpaf`,
+`sessionNonceCookie-*`, later `JSESSIONID`) on Asgardeo's own domains, so a server-side fetch
+collects them instead of the user's browser, and no other origin can set them.
+
+**Why it cannot be deep-linked at all.** The hosted sign-in page hands the transaction to the
+registration page through browser storage, not the URL:
 
 ```js
-if (!payload) {
-  const defaultSignUpUrl = '';
-  return {data: {signUpUrl: String(defaultSignUpUrl)}, success: true};
-}
+// on the sign-in page
+localStorage.setItem("sessionDataKey", "…")
+
+// on the registration page, once the flow completes
+const sessionDataKey = localStorage.getItem("sessionDataKey");
+const userAssertion = flow.data.additionalData?.userAssertion;
+if (sessionDataKey && userAssertion) { /* POST to /commonauth → back to the app */ }
 ```
 
-`SignUpButton` only navigates `if (signUpUrl)`, so with nothing configured it renders and does
-nothing at all — no error, no navigation. You must set `NEXT_PUBLIC_ASGARDEO_SIGN_UP_URL`.
+The `sessionDataKey` in the query string is **ignored**. With nothing in `localStorage` that
+condition fails, `/commonauth` is never called, the authorization request is never resumed, and
+Asgardeo sends the new user to My Account. `localStorage` belongs to the `accounts.asgardeo.io`
+origin, so nothing outside it can seed the value.
 
-`signIn({prompt: 'create'})` is not a workaround either: passing options makes the payload
-non-empty, which switches the SDK to its *embedded* flow. And the OIDC `prompt=create` parameter is
-rejected outright by Asgardeo with `Invalid prompt variables passed with the authorization request`.
+I worked this out only after two failed attempts — first a hand-built URL, then scraping the real
+link and redirecting to it server-side. Both render the correct form and both strand the user,
+because the URL was never the mechanism.
 
-**Then the harder one: there are two registration endpoints, and the wrong one still works.**
+**Where this landed.** There is no in-app sign-up button. Registration is reached from the
+"Create an account" link on Asgardeo's own sign-in page, which is the only route where the
+`localStorage` handoff happens. Even then, returning the new user to the app depends on the flow's
+completion settings rather than anything this app controls, so shipping a button that promised
+sign-up would have been promising something the integration does not reliably deliver.
 
-| Endpoint | Serves |
-| --- | --- |
-| `/accountrecoveryendpoint/register.do` | the **legacy** form (First Name, Birth Date, Mobile, Country) |
-| `/accounts/register?flowType=REGISTRATION` | the **flow** you built under *Flows → Self Registration* |
-
-The legacy endpoint returns `200` and renders a perfectly functional sign-up page, so nothing looks
-broken — you just silently get a different form than the one you designed, and none of your flow's
-steps (OTP verification, custom fields) apply. Use:
-
-```
-https://accounts.asgardeo.io/t/<org>/accounts/register?flowType=REGISTRATION&client_id=<id>&redirect_uri=<app-origin>&response_type=code&scope=openid
-```
-
-Note the host is `accounts.asgardeo.io`, not the `api.asgardeo.io` of
-`NEXT_PUBLIC_ASGARDEO_BASE_URL` — the same path on `api.` returns 403.
-
-To find this endpoint yourself: publish the flow, then load the hosted login page and read the
-"Create an account" link's `href`. Before the flow is published that link is absent entirely (the
-page ships a `handleSignupClick()` handler with nothing wired to it), which is a quick way to check
-whether self-registration is actually live. The link carries a per-request `sessionDataKey`, but
-that parameter turns out to be optional, so the URL can be configured statically.
-
-`SignUpButton` renders nothing when the URL is unset, so a misconfiguration shows as a missing
-button rather than a dead one.
+Separately, enable **Auto Login** on the flow's End node (*Flows → Self Registration*), otherwise a
+new user is created but must then sign in manually.
 
 ### 13. A successful sign-in looks like a failed one
 

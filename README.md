@@ -146,7 +146,11 @@ bun run dev      # http://localhost:3000
 ```
 app/
   page.tsx                  landing page; redirects to /dashboard when signed in
+  error.tsx                 error boundary for any route below the root layout
+  global-error.tsx          replaces the root layout when it is the layout that failed
+  not-found.tsx             404
   dashboard/page.tsx        protected route; lists bookmarks
+  dashboard/loading.tsx     skeleton matching the dashboard layout
   _components/              AuthButtons, SiteHeader, UserBadge, AddBookmarkForm, BookmarkList
 components/ui/              shadcn/ui components
 lib/

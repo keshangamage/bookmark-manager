@@ -14,7 +14,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
-        <title>Something went wrong — Bookmark Manager</title>
+        <title>Something went wrong - Bookmark Manager</title>
         <div className="w-full max-w-md text-center">
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             The app failed to start

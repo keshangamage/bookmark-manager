@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/keshangamage/bookmark-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/keshangamage/bookmark-manager/actions/workflows/ci.yml)
 
-A personal bookmark manager built to learn [WSO2 Asgardeo](https://wso2.com/asgardeo/) — an
-Identity-as-a-Service platform — with a real Next.js app rather than a login-only demo.
+A personal bookmark manager built to learn [WSO2 Asgardeo](https://wso2.com/asgardeo/) - an
+Identity-as-a-Service platform - with a real Next.js app rather than a login-only demo.
 
 Sign in with Asgardeo (OIDC), land on a protected dashboard, and save, edit, tag, search and delete
 your own bookmarks. Every row is scoped to the `sub` claim of the signed-in user, so no account can
@@ -12,7 +12,7 @@ read or change another's.
 **Built with** Next.js 16 (App Router, React 19) · TypeScript · `@asgardeo/nextjs` · Neon Postgres ·
 Drizzle ORM · Tailwind v4 + shadcn/ui · Bun
 
-> 📓 **[NOTES.md](NOTES.md)** — sixteen things that went wrong along the way and what fixed them.
+> 📓 **[NOTES.md](NOTES.md)** - sixteen things that went wrong along the way and what fixed them.
 > That is the interesting half of this repo.
 
 ## Quick start
@@ -35,15 +35,15 @@ OpenID Connect**) and set, on the **Protocol** tab:
 | Field | Value |
 | --- | --- |
 | Grant types | `Code`, `Refresh Token` |
-| Authorized redirect URL | `http://localhost:3000` — the app **origin**, not a callback path |
+| Authorized redirect URL | `http://localhost:3000` - the app **origin**, not a callback path |
 | Public client / PKCE | Off; the app authenticates with the client secret |
 
 Then:
 
-- **User Attributes** — request `email`, or the header shows a user ID instead.
-- **General → Access URL** — set to `http://localhost:3000/welcome.html`. This is where Asgardeo
+- **User Attributes** - request `email`, or the header shows a user ID instead.
+- **General → Access URL** - set to `http://localhost:3000/welcome.html`. This is where Asgardeo
   sends people after they sign up.
-- **Flows → Self Registration** — load a template, **Save Draft**, then publish with the toggle.
+- **Flows → Self Registration** - load a template, **Save Draft**, then publish with the toggle.
   Sign-ups cannot complete until this is published. Note it lives under *Flows*.
 
 The redirect URL and the Access URL are the two most likely things to get wrong;
@@ -85,7 +85,7 @@ Server Actions ──▶ getCurrentUserId() ──▶ Drizzle ──▶ Neon Pos
 ```
 
 `bookmarks.user_id` holds the Asgardeo `sub`, read **only** on the server from the signed session
-cookie — never from a form field, since a client-supplied user ID would let anyone read anyone
+cookie - never from a form field, since a client-supplied user ID would let anyone read anyone
 else's rows. Updates and deletes match on `(id, user_id)`, so knowing another user's bookmark UUID
 is not enough to touch it.
 
@@ -114,14 +114,14 @@ proxy.ts                  Asgardeo middleware + route protection
 
 ## The bookmarks API
 
-The dashboard uses server actions and a session cookie. `/api/bookmarks` is for everything else —
-scripts, a CLI, a mobile client — and takes an **OAuth Bearer access token** instead. Cookies are
+The dashboard uses server actions and a session cookie. `/api/bookmarks` is for everything else -
+scripts, a CLI, a mobile client - and takes an **OAuth Bearer access token** instead. Cookies are
 not accepted, so another site cannot drive it with the user's ambient credentials.
 
 | Request | Behaviour |
 | --- | --- |
 | `GET /api/bookmarks` | the caller's own bookmarks |
-| `GET /api/bookmarks?all=true` | every user's bookmarks — requires the admin role |
+| `GET /api/bookmarks?all=true` | every user's bookmarks - requires the admin role |
 | `POST /api/bookmarks` | `{url, title?, tag?}`; the url is normalised and must be http(s) |
 
 ```bash
@@ -144,7 +144,7 @@ string, so `rolesFrom()` accepts all of those shapes.
 | `bun run dev` / `build` / `start` | Dev server, production build, serve the build |
 | `bun run lint` | ESLint |
 | `bun run typecheck` | `next typegen` then `tsc --noEmit` |
-| `bun run test` | Tests without `.env.local` — what CI runs |
+| `bun run test` | Tests without `.env.local` - what CI runs |
 | `bun run test:local` | Full suite, loading `.env.local` |
 | `bun run db:generate` / `db:migrate` / `db:studio` | Drizzle migrations and studio |
 
@@ -163,7 +163,7 @@ string, so `rolesFrom()` accepts all of those shapes.
 on forks. It writes rows under `citest-*` ids and cleans up after itself.
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests and a production build on every push and
-PR, using placeholder credentials — every route is dynamic, so the build never contacts Asgardeo or
+PR, using placeholder credentials - every route is dynamic, so the build never contacts Asgardeo or
 Postgres.
 
 ### Checking the scoping by hand

@@ -40,7 +40,7 @@ export default async function Home({searchParams}: PageProps<'/'>) {
           </h1>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-muted-foreground text-pretty">
             Save a URL, give it a tag, find it again later. Your bookmarks are scoped to your
-            account — nobody else can read or delete them.
+            account - nobody else can read or delete them.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SignInButton />

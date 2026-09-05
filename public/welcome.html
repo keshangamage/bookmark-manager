@@ -12,7 +12,7 @@
   forever. /welcome -> /api/sign-in -> Asgardeo takes 3.5-5.8s and never lands.
 
   A static file off the CDN answers 200 in ~0.3s. That commits the browser to a
-  new document, which destroys the Asgardeo page and its interval — after which
+  new document, which destroys the Asgardeo page and its interval - after which
   the hop to /api/sign-in has no deadline.
 -->
 <meta http-equiv="refresh" content="0;url=/api/sign-in">

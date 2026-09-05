@@ -9,7 +9,7 @@ function ReadOnlyRow({label, value}: {label: string; value: string | null}) {
       <dt className="w-44 shrink-0 font-mono text-xs tracking-wide text-muted-foreground uppercase">
         {label}
       </dt>
-      <dd className="min-w-0 truncate font-mono text-sm">{value ?? '—'}</dd>
+      <dd className="min-w-0 truncate font-mono text-sm">{value ?? '-'}</dd>
     </div>
   );
 }
@@ -25,7 +25,7 @@ export default async function ProfilePage() {
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
       <h1 className="font-heading text-3xl font-semibold tracking-tight">Your profile</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Read from Asgardeo over SCIM 2.0 — editing a name here writes back to the identity provider,
+        Read from Asgardeo over SCIM 2.0 - editing a name here writes back to the identity provider,
         not to this app&apos;s database.
       </p>
 

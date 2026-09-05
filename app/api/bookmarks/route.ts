@@ -24,7 +24,7 @@ async function authenticate(request: NextRequest) {
     if (!claims.sub) return {error: unauthorized('Token has no subject')};
     return {claims, userId: claims.sub};
   } catch {
-    // Signature, issuer, audience, or expiry — never say which.
+    // Signature, issuer, audience, or expiry - never say which.
     return {error: unauthorized('Invalid or expired token')};
   }
 }
